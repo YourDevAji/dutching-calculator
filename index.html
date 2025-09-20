@@ -47,7 +47,7 @@ h1{font-size:18px;margin:0}
     <div class="logo">DC</div>
     <div>
       <h1>Dutching / Pair Stake Calculator</h1>
-      <div class="hint">Enter your total stake and odds. Choose a pair or let the tool compare pairs. Mobile-friendly — copy stakes to your bookmaker app.</div>
+      <div class="hint">Enter your total stake and odds. Choose a pair or let the tool compare pairs.</div>
     </div>
   </div>
 
@@ -74,9 +74,9 @@ h1{font-size:18px;margin:0}
           <div style="display:flex;gap:8px">
             <input id="oddH" type="number" step="0.01" value="2.25" />
             <input id="oddD" type="number" step="0.01" value="3.00" />
-            <input id="oddW" type="number" step="0.01" value="3.60" />
+            <input id="oddA" type="number" step="0.01" value="3.60" />
           </div>
-          <div class="hint" style="margin-top:8px">Home (H), Draw (D), Away/Win (W). Change values freely.</div>
+          <div class="hint" style="margin-top:8px">Home (H), Draw (D), Away (A). Change values freely.</div>
         </div>
 
         <div class="input" style="margin-top:10px">
@@ -84,8 +84,8 @@ h1{font-size:18px;margin:0}
           <select id="pairSelect">
             <option value="auto">Compare all pairs and show best</option>
             <option value="HD">H & D</option>
-            <option value="HW">H & W</option>
-            <option value="DW" selected>D & W</option>
+            <option value="HA">H & A</option>
+            <option value="DA" selected>D & A</option>
           </select>
         </div>
 
@@ -167,7 +167,7 @@ document.getElementById('compute').addEventListener('click', ()=>{
   const total = Number(document.getElementById('total').value) || 0;
   const oddH = Number(document.getElementById('oddH').value) || 0;
   const oddD = Number(document.getElementById('oddD').value) || 0;
-  const oddW = Number(document.getElementById('oddW').value) || 0;
+  const oddA = Number(document.getElementById('oddA').value) || 0;
   const rounding = Number(document.getElementById('rounding').value) || 1;
   const pairSel = document.getElementById('pairSelect').value;
 
@@ -177,8 +177,8 @@ document.getElementById('compute').addEventListener('click', ()=>{
 
   const pairs = [
     {id:'HD', aLabel:'H', bLabel:'D', a:oddH, b:oddD},
-    {id:'HW', aLabel:'H', bLabel:'W', a:oddH, b:oddW},
-    {id:'DW', aLabel:'D', bLabel:'W', a:oddD, b:oddW},
+    {id:'HA', aLabel:'H', bLabel:'A', a:oddH, b:oddA},
+    {id:'DA', aLabel:'D', bLabel:'A', a:oddD, b:oddA},
   ];
 
   function showOne(p){
@@ -214,15 +214,15 @@ document.getElementById('minCover').addEventListener('click', ()=>{
   const total = Number(document.getElementById('total').value) || 0;
   const oddH = Number(document.getElementById('oddH').value) || 0;
   const oddD = Number(document.getElementById('oddD').value) || 0;
-  const oddW = Number(document.getElementById('oddW').value) || 0;
+  const oddA = Number(document.getElementById('oddA').value) || 0;
   const r = calcMinCover(total, oddH, oddD);
-  const r2 = calcMinCover(total, oddH, oddW);
-  const r3 = calcMinCover(total, oddD, oddW);
+  const r2 = calcMinCover(total, oddH, oddA);
+  const r3 = calcMinCover(total, oddD, oddA);
   const out = document.getElementById('results');
   out.innerHTML = '<div class="card"><strong>Minimum-cover per pair (break-even)</strong><table class="table"><thead><tr><th>Pair</th><th>Min A</th><th>Min B</th><th>Used total</th><th>Leftover</th></tr></thead><tbody>'
   + '<tr><td>H & D</td><td>'+fmt(r.minA)+'</td><td>'+fmt(r.minB)+'</td><td>'+fmt(r.minA + r.minB)+'</td><td>'+fmt(r.leftover)+'</td></tr>'
-  + '<tr><td>H & W</td><td>'+fmt(r2.minA)+'</td><td>'+fmt(r2.minB)+'</td><td>'+fmt(r2.minA + r2.minB)+'</td><td>'+fmt(r2.leftover)+'</td></tr>'
-  + '<tr><td>D & W</td><td>'+fmt(r3.minA)+'</td><td>'+fmt(r3.minB)+'</td><td>'+fmt(r3.minA + r3.minB)+'</td><td>'+fmt(r3.leftover)+'</td></tr>'
+  + '<tr><td>H & A</td><td>'+fmt(r2.minA)+'</td><td>'+fmt(r2.minB)+'</td><td>'+fmt(r2.minA + r2.minB)+'</td><td>'+fmt(r2.leftover)+'</td></tr>'
+  + '<tr><td>D & A</td><td>'+fmt(r3.minA)+'</td><td>'+fmt(r3.minB)+'</td><td>'+fmt(r3.minA + r3.minB)+'</td><td>'+fmt(r3.leftover)+'</td></tr>'
   + '</tbody></table></div>';
 });
 
@@ -230,9 +230,9 @@ document.getElementById('clear').addEventListener('click', ()=>{
   document.getElementById('total').value = 30000;
   document.getElementById('oddH').value = 2.25;
   document.getElementById('oddD').value = 3.00;
-  document.getElementById('oddW').value = 3.60;
+  document.getElementById('oddA').value = 3.60;
   document.getElementById('rounding').value = 100;
-  document.getElementById('pairSelect').value = 'DW';
+  document.getElementById('pairSelect').value = 'DA';
   document.getElementById('results').innerHTML='';
   document.getElementById('summaryText').innerHTML = 'Press Compute to see stakes and guaranteed returns.';
 });
