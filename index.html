@@ -13,12 +13,12 @@
           color-scheme: dark;
         }
         *{box-sizing:border-box}
-        html,body{height:100%; overflow-x: hidden;}
+        html,body{height:100%; width: 100%; overflow-x: hidden;}
         body{
           margin:0;background:
           radial-gradient(1000px 600px at 10% 10%, rgba(96,165,250,0.06), transparent 8%),
           linear-gradient(180deg,#031024 0%, #061427 100%); color:#e6eef6;
-          min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:28px;
+          min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:18px;
         }
         .app{max-width:1200px;width:100%}
         .header{display:flex;align-items:center;gap:14px;margin-bottom:18px}
@@ -1380,40 +1380,33 @@
           games = [];
         }
       } else {
-        // No saved session → seed demo matches
-        games = [
-          {
-            id: Date.now()+1,
-            home: 'Chelsea',
-            away: 'Arsenal',
-            odds: {H: 2.10, D: 3.25, A: 3.70},
-            stake: 3000,
-            rounding: 100,
-            pairSel: 'auto'
-          },
-          {
-            id: Date.now()+2,
-            home: 'Liverpool',
-            away: 'Man City',
-            odds: {H: 2.80, D: 3.50, A: 2.40},
-            stake: 2500,
-            rounding: 50,
-            pairSel: 'DA'
-          }
-        ];
       }
       renderAll();
     }
     seedDemo();
 
-    /* keyboard shortcut: N => new game */
-    document.addEventListener('keydown', (e)=>{
-      if((e.key === 'n' || e.key === 'N') && !e.ctrlKey && !e.metaKey){
-        q('#newGameForm').style.display = 'block';
-        q('#teamHome').focus();
-        e.preventDefault();
-      }
-    });
+    /* keyboard shortcut: + => new game */
+    document.addEventListener('keydown', (e) => {
+  // Ignore shortcuts with Ctrl or Meta
+  if (e.ctrlKey || e.metaKey) return;
+
+  // Detect "+" reliably across layouts
+  const isPlus =
+    e.key === '+' ||        // Common case when Shift + "=" is pressed
+    e.key === '=' ||        // Some layouts produce "=" without Shift
+    e.code === 'Equal';     // Layout-independent physical key
+
+  if (isPlus) {
+    const newGameForm = document.querySelector('#newGameForm');
+    const teamHomeInput = document.querySelector('#teamHome');
+
+    if (newGameForm) newGameForm.style.display = 'block';
+    if (teamHomeInput) teamHomeInput.focus();
+
+    e.preventDefault(); // Prevent typing in inputs
+  }
+});
+
 
 </script>
 </body>
