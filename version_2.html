@@ -1,0 +1,1282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dutching Analyzer — Multi-game with Parlay</title>
+<link rel="icon" href="data:;base64,iVBORw0KGgo=">
+<style>
+:root{
+  --bg:#071022; --card:#071826; --muted:#98a6b3; --accent:#60a5fa; --glass: rgba(255,255,255,0.03);
+  --radius:12px; --success:#22c55e; --danger:#fb7185; --warn:#f59e0b;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:
+  radial-gradient(1000px 600px at 10% 10%, rgba(96,165,250,0.06), transparent 8%),
+  linear-gradient(180deg,#031024 0%, #061427 100%); color:#e6eef6;
+  min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:28px;
+}
+.app{max-width:1200px;width:100%}
+.header{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#38bdf8);display:flex;align-items:center;justify-content:center;font-weight:700;color:#032;box-shadow:0 10px 30px rgba(2,6,23,0.6)}
+.title{font-size:20px;margin:0}
+.subtitle{font-size:13px;color:var(--muted);margin-top:4px}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:360px 1fr;gap:16px}
+@media(max-width:880px){ .grid{grid-template-columns:1fr} .leftSticky{position:static;} }
+
+.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:16px;border-radius:var(--radius);box-shadow:0 6px 28px rgba(2,6,23,0.6);}
+.form-row{display:flex;gap:8px}
+.input{background:var(--glass);padding:8px;border-radius:10px;flex:1}
+.input label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+.input input, .input select{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;font-size:14px}
+.small{font-size:13px;padding:8px 10px}
+.btn{background:var(--accent);border:none;color:#032;padding:9px 12px;border-radius:10px;font-weight:700;cursor:pointer;box-shadow:0 8px 24px rgba(96,165,250,0.12);transition:all 0.2s ease}
+.btn:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(96,165,250,0.2)}
+.btn.ghost{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.04)}
+.btn.ghost:hover{background:rgba(255,255,255,0.05);color:var(--accent)}
+.btn.warn{background:var(--warn);color:#042; font-weight:700}
+.btn.warn:hover{background:#fbbf24;box-shadow:0 8px 24px rgba(245,158,11,0.2)}
+.btn.danger{background:var(--danger);color:#042; font-weight:700}
+.btn.danger:hover{background:#fd9aac;box-shadow:0 8px 24px rgba(251,113,133,0.2)}
+.hint{font-size:13px;color:var(--muted);margin-top:8px}
+.games-list{display:grid;gap:12px}
+.game-card{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
+.row{display:flex;gap:8px;align-items:center}
+.table{width:100%;border-collapse:collapse;margin-top:8px}
+.table th, .table td{padding:8px 10px;border-bottom:1px dashed rgba(255,255,255,0.03);text-align:left;font-size:14px}
+.badge{background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:8px;font-size:13px;color:var(--muted)}
+.output-line{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.profit-positive{color:var(--success);font-weight:700}
+.profit-negative{color:var(--danger);font-weight:700}
+.profit-neutral{color:var(--muted);font-weight:700}
+.copy-btn{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:6px 8px;border-radius:8px;cursor:pointer;color:var(--muted);transition:all 0.2s ease}
+.copy-btn:hover{background:rgba(255,255,255,0.05);color:var(--accent)}
+.footer{font-size:13px;color:var(--muted);margin-top:12px;text-align:center}
+
+.tools {display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.kv{display:flex;gap:8px;align-items:center}
+.small-muted{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:8px;align-items:center;margin-top:8px}
+.legend .item{display:flex;gap:6px;align-items:center;font-size:13px}
+.color-box{width:12px;height:12px;border-radius:3px}
+.color-good{background:var(--success)}
+.color-bad{background:var(--danger)}
+.color-warn{background:var(--warn)}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.flex-between{display:flex;justify-content:space-between;align-items:center;gap:8px}
+
+/* New styles for enhanced UI */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+.toast.visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+.toast.success { border-left: 4px solid var(--success); }
+.toast.error { border-left: 4px solid var(--danger); }
+.toast.info { border-left: 4px solid var(--accent); }
+
+.tooltip {
+  position: relative;
+  cursor: help;
+}
+.tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(0,0,0,0.8);
+  color: white;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 100;
+}
+.tooltip:hover::after {
+  opacity: 1;
+  visibility: visible;
+  bottom: calc(100% + 5px);
+}
+
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.portfolio-card {
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--glass);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.portfolio-value {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 8px 0;
+}
+
+/* Parlay specific styles */
+.parlay-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+  padding: 12px;
+  background: var(--glass);
+  border-radius: var(--radius);
+}
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255,255,255,0.1);
+  transition: .4s;
+  border-radius: 24px;
+}
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+input:checked + .toggle-slider {
+  background-color: var(--accent);
+}
+input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+}
+
+.parlay-controls {
+  background: var(--glass);
+  padding: 16px;
+  border-radius: var(--radius);
+  margin: 16px 0;
+}
+.parlay-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+.parlay-table th {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.parlay-table td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.parlay-table tr:last-child td {
+  border-bottom: none;
+}
+.parlay-combo {
+  font-family: monospace;
+  font-size: 13px;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  body {
+    padding: 16px;
+  }
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .tools, .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .form-row {
+    flex-direction: column;
+  }
+  .parlay-table {
+    font-size: 12px;
+  }
+  .parlay-combo {
+    font-size: 11px;
+  }
+}
+
+/* Animation for adding/removing games */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.game-card {
+  animation: fadeIn 0.3s ease;
+}
+
+/* Improved form elements */
+.input input:focus, .input select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(96,165,250,0.2);
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="logo">DA</div>
+    <div>
+      <div class="title">Dutching Analyzer — Multi-game with Parlay</div>
+      <div class="subtitle">Add games, generate pair-stakes, compare plays, and review portfolio risk & profit.</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- LEFT: Controls & Add Game -->
+    <div class="card leftSticky">
+      <div class="tools">
+        <button class="btn" id="btnNew">+ New Game</button>
+        <button class="btn ghost" id="btnSave">Save Session</button>
+        <button class="btn ghost" id="btnLoad">Load Session</button>
+        <button class="btn ghost" id="btnExport">Export CSV</button>
+        <button class="btn danger" id="btnClearAll">Clear All</button>
+      </div>
+
+      <div id="newGameForm" style="margin-top:12px;display:none;">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <div class="input" style="flex:1">
+            <label>Home team</label>
+            <input id="teamHome" placeholder="Home team (e.g. Chelsea)" />
+          </div>
+          <div class="input" style="flex:1">
+            <label>Away team</label>
+            <input id="teamAway" placeholder="Away team (e.g. Arsenal)" />
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <div class="input" style="flex:1">
+            <label>Odds - Home (H)</label>
+            <input id="odH" type="number" step="0.01" min="1.01" value="2.25" />
+          </div>
+          <div class="input" style="flex:1">
+            <label>Odds - Draw (D)</label>
+            <input id="odD" type="number" step="0.01" min="1.01" value="3.00" />
+          </div>
+          <div class="input" style="flex:1">
+            <label>Odds - Away (A)</label>
+            <input id="odA" type="number" step="0.01" min="1.01" value="3.60" />
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <div class="input" style="flex:1">
+            <label>Stake for this game (₦)</label>
+            <input id="gameStake" type="number" step="1" min="1" value="3000" />
+          </div>
+          <div class="input" style="flex:1">
+            <label>Rounding</label>
+            <select id="gameRounding"><option value="1">₦1</option><option value="50">₦50</option><option value="100" selected>₦100</option></select>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px">
+          <div class="input" style="flex:1">
+            <label>Pair selection</label>
+            <select id="gamePair"><option value="auto">Auto (best)</option><option value="HD">H & D</option><option value="HA">H & A</option><option value="DA">D & A</option></select>
+          </div>
+          <div style="width:1px"></div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn" id="addGameBtn">Add game</button>
+          <button class="btn ghost" id="cancelAdd">Cancel</button>
+        </div>
+      </div>
+
+      <div class="hint" style="margin-top:12px">
+        <strong>How it works</strong>
+        <div class="small-muted" style="margin-top:6px">
+          Add one or more matches. For each match the tool suggests stake splits across a two-outcome pair so the returns are (approximately) equal — guaranteeing a payout for either of the pair outcomes. The summary aggregates those guarantees and shows portfolio risk.
+        </div>
+      </div>
+
+      <div class="legend">
+        <div class="item"><div class="color-box color-good"></div> Profitable</div>
+        <div class="item"><div class="color-box color-bad"></div> Loss / Risk</div>
+        <div class="item"><div class="color-box color-warn"></div> Marginal</div>
+      </div>
+
+      <div class="footer">Made by <strong>YourDevAji</strong></div>
+    </div>
+
+    <!-- RIGHT: Games and Results -->
+    <div>
+      <div class="card">
+        <div class="flex-between">
+          <div style="display:flex;flex-direction:column">
+            <strong>Games</strong>
+            <div class="small-muted">Add matches and compute dutching pairs per match.</div>
+          </div>
+          <div class="small-muted" id="gamesCount">0 games</div>
+        </div>
+      </div>
+
+      <div id="gamesContainer" class="games-list" style="margin-top:12px"></div>
+
+      <div id="portfolio" style="margin-top:12px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification element -->
+<div id="toast" class="toast"></div>
+
+<script>
+/* ---------- Utilities ---------- */
+function roundTo(n, step){
+  step = Number(step) || 1;
+  return Math.round(n/step)*step;
+}
+function fmt(n){ return '₦' + Number(n).toLocaleString(undefined,{maximumFractionDigits:2}); }
+function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+// Show toast notification
+function showToast(message, type = 'info') {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = `toast ${type}`;
+  toast.classList.add('visible');
+  
+  setTimeout(() => {
+    toast.classList.remove('visible');
+  }, 3000);
+}
+
+/* ---------- Core math ---------- */
+/*
+  Calculate stake split for two odds a,b so x*a = y*b and x+y = total
+  Returns rounded stakes and payouts.
+*/
+function calcEqualPayout(total, a, b, roundingStep){
+  // handle zero or invalid odds
+  a = Number(a); b = Number(b); total = Number(total);
+  if(!a || !b || !total) return {stakeA:0, stakeB:0, payoutA:0, payoutB:0, precise:{x:0,y:0}};
+
+  const x = (total * b) / (a + b);
+  const y = total - x;
+  const rx = roundTo(x, roundingStep);
+  let ry = total - rx;
+  // fallback: if rounding overshoots, keep nearest
+  if(ry < 0) ry = roundTo(y, roundingStep);
+  const p1 = rx * a;
+  const p2 = ry * b;
+  return {stakeA:rx, stakeB:ry, payoutA:p1, payoutB:p2, precise:{x,y}};
+}
+
+/* Calculate parlay stake distribution */
+function calcParlayStakes(totalStake, oddsArray, roundingStep = 1) {
+  if (!oddsArray.length) return { stakes: [], payout: 0 };
+  
+  // Calculate the total inverse odds sum
+  const totalInverse = oddsArray.reduce((sum, odd) => sum + (1 / odd), 0);
+  
+  // Calculate individual stakes
+  const stakes = oddsArray.map(odd => {
+    const preciseStake = (totalStake / odd) / totalInverse;
+    return roundTo(preciseStake, roundingStep);
+  });
+  
+  // Adjust for rounding errors
+  const totalStaked = stakes.reduce((sum, stake) => sum + stake, 0);
+  const difference = totalStake - totalStaked;
+  
+  if (difference !== 0) {
+    // Add the difference to the largest stake to minimize impact
+    const maxIndex = stakes.indexOf(Math.max(...stakes));
+    stakes[maxIndex] += difference;
+  }
+  
+  // Calculate payouts
+  const payouts = stakes.map((stake, i) => stake * oddsArray[i]);
+  const minPayout = Math.min(...payouts);
+  
+  return {
+    stakes,
+    payouts,
+    guaranteedPayout: minPayout,
+    profit: minPayout - totalStake
+  };
+}
+
+/* Minimum stakes to break-even for each selection in pair */
+function calcMinCover(total, a, b){
+  a = Number(a); b = Number(b); total = Number(total);
+  if(!a || !b || !total) return {minA:0,minB:0,leftover:0};
+  const minA = total / a;
+  const minB = total / b;
+  const used = minA + minB;
+  const leftover = Math.max(0, total - used);
+  return {minA, minB, leftover};
+}
+
+/* ---------- App state ---------- */
+let games = []; // {id, home, away, odds:{H,D,A}, stake, rounding, pairSel}
+let parlayMode = false;
+let parlayStake = 5000;
+let parlayRounding = 100;
+const q = (sel) => document.querySelector(sel);
+
+/* ---------- Persistence ---------- */
+function saveSession(){
+  try {
+    const sessionData = {
+      games,
+      parlayMode,
+      parlayStake,
+      parlayRounding
+    };
+    localStorage.setItem('da_games_v2', JSON.stringify(sessionData));
+    showToast('Session saved successfully!', 'success');
+  } catch (e) {
+    showToast('Failed to save session. Storage might be full.', 'error');
+  }
+}
+function loadSession(){
+  const raw = localStorage.getItem('da_games_v2');
+  if(!raw){ 
+    showToast('No saved session found.', 'error'); 
+    return; 
+  }
+  try{
+    const sessionData = JSON.parse(raw);
+    games = sessionData.games || [];
+    parlayMode = sessionData.parlayMode || false;
+    parlayStake = sessionData.parlayStake || 5000;
+    parlayRounding = sessionData.parlayRounding || 100;
+    renderAll();
+    showToast('Session loaded successfully!', 'success');
+  }catch(e){ 
+    showToast('Failed to load session. Data might be corrupted.', 'error');
+  }
+}
+function clearSession(confirmFirst=true){
+  if(confirmFirst && !confirm('Clear all games? This cannot be undone.')) return;
+  games = [];
+  parlayMode = false;
+  renderAll();
+  localStorage.removeItem('da_games_v2');
+  showToast('All games cleared.', 'info');
+}
+
+/* ---------- Add / Remove / Render ---------- */
+function newGameObj(){
+  return {
+    id: Date.now() + Math.floor(Math.random()*999),
+    home: '',
+    away: '',
+    odds: {H:2.25, D:3.00, A:3.60},
+    stake: 3000,
+    rounding: 100,
+    pairSel: 'auto'
+  };
+}
+
+function addGameFromForm(){
+  const home = q('#teamHome').value.trim() || 'Home';
+  const away = q('#teamAway').value.trim() || 'Away';
+  const H = Number(q('#odH').value) || 0;
+  const D = Number(q('#odD').value) || 0;
+  const A = Number(q('#odA').value) || 0;
+  const stake = Number(q('#gameStake').value) || 0;
+  const rounding = Number(q('#gameRounding').value) || 1;
+  const pairSel = q('#gamePair').value || 'auto';
+  
+  // Validate inputs
+  if (H < 1.01 || D < 1.01 || A < 1.01) {
+    showToast('Odds must be at least 1.01', 'error');
+    return;
+  }
+  
+  if (stake <= 0) {
+    showToast('Stake must be greater than 0', 'error');
+    return;
+  }
+  
+  const g = {
+    id: Date.now() + Math.floor(Math.random()*999),
+    home, away, odds:{H,D,A}, stake, rounding, pairSel
+  };
+  games.push(g);
+  // reset form and hide
+  q('#newGameForm').style.display = 'none';
+  renderAll();
+  showToast(`Added ${home} vs ${away}`, 'success');
+}
+
+/* Remove game */
+function removeGame(id){
+  const game = games.find(g => g.id === id);
+  games = games.filter(g => g.id !== id);
+  renderAll();
+  if (game) {
+    showToast(`Removed ${game.home} vs ${game.away}`, 'info');
+  }
+}
+
+/* Edit helper (inline) */
+function updateGame(id, patch){
+  const idx = games.findIndex(g=>g.id===id);
+  if(idx===-1) return;
+  games[idx] = {...games[idx], ...patch};
+  renderAll(); // re-render to recalc
+}
+
+/* ---------- Rendering ---------- */
+function renderAll(){
+  const container = q('#gamesContainer');
+  container.innerHTML = '';
+  q('#gamesCount').textContent = `${games.length} game${games.length===1?'':'s'}`;
+
+  if(games.length===0){
+    container.innerHTML = '<div class="card"><div class="small-muted">No games added. Click "New Game" to add one.</div></div>';
+    q('#portfolio').innerHTML = '';
+    return;
+  }
+
+  // render each game
+  games.forEach(g => {
+    const el = document.createElement('div');
+    el.className = 'card game-card';
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div>
+            <div style="font-weight:700">${escapeHtml(g.home)} <span style="color:var(--muted)">vs</span> ${escapeHtml(g.away)}</div>
+            <div class="small-muted" style="margin-top:4px">${formatOdds(g.odds)}</div>
+          </div>
+          <div class="badge">Stake: ${fmt(g.stake)}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn ghost" data-action="edit" data-id="${g.id}">Edit</button>
+          <button class="btn danger small" data-action="remove" data-id="${g.id}">Remove</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:180px">
+          <div class="small-muted">Pair selection</div>
+          <select data-action="pair" data-id="${g.id}" style="width:100%;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);margin-top:6px">
+            <option ${g.pairSel==='auto'?'selected':''} value="auto">Auto (best)</option>
+            <option ${g.pairSel==='HD'?'selected':''} value="HD">H & D</option>
+            <option ${g.pairSel==='HA'?'selected':''} value="HA">H & A</option>
+            <option ${g.pairSel==='DA'?'selected':''} value="DA">D & A</option>
+          </select>
+        </div>
+
+        <div style="min-width:200px">
+          <div class="small-muted">Rounding</div>
+          <select data-action="round" data-id="${g.id}" style="width:100%;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);margin-top:6px">
+            <option ${g.rounding===1?'selected':''} value="1">₦1</option>
+            <option ${g.rounding===50?'selected':''} value="50">₦50</option>
+            <option ${g.rounding===100?'selected':''} value="100">₦100</option>
+          </select>
+        </div>
+
+        <div style="min-width:160px">
+          <div class="small-muted">Stake</div>
+          <input data-action="stake" data-id="${g.id}" value="${g.stake}" style="width:100%;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);margin-top:6px" />
+        </div>
+      </div>
+
+      <div style="margin-top:10px">
+        ${renderAnalysisHtml(g)}
+      </div>
+    `;
+
+    container.appendChild(el);
+  });
+
+  // attach event listeners (delegation)
+  container.querySelectorAll('button[data-action="remove"]').forEach(btn=>{
+    btn.onclick = () => removeGame(Number(btn.dataset.id));
+  });
+  container.querySelectorAll('button[data-action="edit"]').forEach(btn=>{
+    btn.onclick = () => openEditModal(Number(btn.dataset.id));
+  });
+  container.querySelectorAll('select[data-action="pair"]').forEach(sel=>{
+    sel.onchange = (e)=> {
+      updateGame(Number(sel.dataset.id), {pairSel: sel.value});
+      showToast('Pair selection updated', 'info');
+    };
+  });
+  container.querySelectorAll('select[data-action="round"]').forEach(sel=>{
+    sel.onchange = (e)=> {
+      updateGame(Number(sel.dataset.id), {rounding: Number(sel.value)});
+      showToast('Rounding updated', 'info');
+    };
+  });
+  container.querySelectorAll('input[data-action="stake"]').forEach(inp=>{
+    let timeout;
+    inp.onchange = ()=> {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        const newStake = Number(inp.value) || 0;
+        if (newStake <= 0) {
+          showToast('Stake must be greater than 0', 'error');
+          inp.value = games.find(g => g.id === Number(inp.dataset.id)).stake;
+          return;
+        }
+        updateGame(Number(inp.dataset.id), {stake: newStake});
+        showToast('Stake updated', 'info');
+      }, 800);
+    };
+  });
+
+  // attach copy buttons and copy behaviors
+  container.querySelectorAll('button[data-copy]').forEach(btn=>{
+    btn.onclick = ()=> {
+      const text = btn.dataset.copy;
+      navigator.clipboard.writeText(text).then(()=> {
+        btn.textContent = 'Copied!';
+        setTimeout(()=> btn.textContent = 'Copy', 1500);
+      }).catch(err => {
+        showToast('Failed to copy to clipboard', 'error');
+      });
+    };
+  });
+
+  renderPortfolio(); // update portfolio
+}
+
+function renderAnalysisHtml(g){
+  // compute per-pair results
+  const pairs = [
+    {id:'HD', aLabel:'H', bLabel:'D', a:g.odds.H, b:g.odds.D},
+    {id:'HA', aLabel:'H', bLabel:'A', a:g.odds.H, b:g.odds.A},
+    {id:'DA', aLabel:'D', bLabel:'A', a:g.odds.D, b:g.odds.A},
+  ];
+  let best = null;
+  const rows = pairs.map(p=>{
+    const e = calcEqualPayout(g.stake, p.a, p.b, g.rounding);
+    const guar = Math.min(e.payoutA, e.payoutB);
+    if(!best || guar > best.guar){ best = {pair:p, guar, e}; }
+    return {p, e, guar};
+  });
+
+  // which pair to show based on g.pairSel
+  let showRows = [];
+  if(g.pairSel === 'auto'){
+    showRows.push(best);
+  } else {
+    const sel = rows.find(r => r.p.id === g.pairSel);
+    if(sel) showRows.push(sel);
+  }
+
+  // Build HTML
+  let html = '';
+  showRows.forEach(r=>{
+    const p = r.pair || r.p , e = r.e, guar = r.guar;
+    const profit = guar - g.stake;
+    const cls = profit>0 ? 'profit-positive' : (profit<0 ? 'profit-negative' : 'profit-neutral');
+    html += `
+      <div class="game-analysis">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>${p.aLabel} (${p.a})</strong> &nbsp; <strong>${p.bLabel} (${p.b})</strong></div>
+          <div class="badge">Guaranteed ≈ ${fmt(guar)}</div>
+        </div>
+
+        <table class="table">
+          <thead><tr><th>Side</th><th>Stake</th><th>Return if wins</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>${p.aLabel}</td><td>${fmt(e.stakeA)}</td><td>${fmt(e.payoutA)}</td><td><button class="copy-btn" data-copy="${p.aLabel} ${fmt(e.stakeA)}">Copy</button></td></tr>
+            <tr><td>${p.bLabel}</td><td>${fmt(e.stakeB)}</td><td>${fmt(e.payoutB)}</td><td><button class="copy-btn" data-copy="${p.bLabel} ${fmt(e.stakeB)}">Copy</button></td></tr>
+            <tr><td><em>Total stake</em></td><td colspan="3">${fmt(e.stakeA + e.stakeB)}</td></tr>
+          </tbody>
+        </table>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <div class="small-muted">Profit (guaranteed - stake)</div>
+          <div class="${cls}">${fmt(profit)}</div>
+        </div>
+
+        <div class="hint" style="margin-top:8px">
+          <strong>Minimum cover</strong>: H: ${fmt(calcMinCover(g.stake,p.a,p.b).minA)} , ${p.bLabel}: ${fmt(calcMinCover(g.stake,p.a,p.b).minB)}
+          <div class="small-muted" style="margin-top:6px">
+            If the third, unbacked outcome occurs, you lose approx the total stake for the game (${fmt(g.stake)}).
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  return html;
+}
+
+/* ---------- Portfolio summary ---------- */
+function renderPortfolio(){
+  // For each game select currently-active pair (auto -> best) and compute guaranteed amounts and potential max
+  let totalStake = 0;
+  let sumGuaranteed = 0;
+  let sumMaxPossible = 0; // using larger of pair returns per game
+  let lossesIfThird = 0; // total stake (worst-case if unbacked outcomes happen)
+  const details = [];
+
+  games.forEach(g=>{
+    totalStake += Number(g.stake) || 0;
+    const pairs = [
+      {id:'HD', aLabel:'H', bLabel:'D', a:g.odds.H, b:g.odds.D},
+      {id:'HA', aLabel:'H', bLabel:'A', a:g.odds.H, b:g.odds.A},
+      {id:'DA', aLabel:'D', bLabel:'A', a:g.odds.D, b:g.odds.A},
+    ];
+    // compute best pair for guar
+    let best = null;
+    pairs.forEach(p=>{
+      const e = calcEqualPayout(g.stake, p.a, p.b, g.rounding);
+      const guar = Math.min(e.payoutA, e.payoutB);
+      if(!best || guar > best.guar) best = {p,e,guar};
+    });
+
+    let chosen = null;
+    if(g.pairSel === 'auto') chosen = best;
+    else chosen = (pairs.map(p=>{
+      const e = calcEqualPayout(g.stake, p.a, p.b, g.rounding);
+      return {p,e,guar: Math.min(e.payoutA,e.payoutB)};
+    }).find(x=>x.p.id===g.pairSel) || best);
+
+    sumGuaranteed += Number(chosen.guar) || 0;
+    // for max possible per game, if one of the pair-winning outcomes hits the larger payout matters:
+    const maxPossible = Math.max(chosen.e.payoutA, chosen.e.payoutB);
+    sumMaxPossible += Number(maxPossible) || 0;
+    // if third outcome hits you lose the stake
+    lossesIfThird += g.stake;
+
+    details.push({
+      id: g.id,
+      title: `${g.home} v ${g.away}`,
+      stake: g.stake,
+      guaranteed: chosen.guar,
+      maxPossible,
+      pair: chosen.p
+    });
+  });
+
+  // Profit range
+  const minProfit = sumGuaranteed - totalStake;
+  const maxProfit = sumMaxPossible - totalStake;
+
+  // Build HTML
+  const port = q('#portfolio');
+  let portfolioHTML = `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <strong>Portfolio summary</strong>
+          <div class="small-muted">Aggregated across ${games.length} match${games.length===1?'':'es'}</div>
+        </div>
+        <div class="small-muted">Total stake: ${fmt(totalStake)}</div>
+      </div>
+
+      <div class="portfolio-grid">
+        <div class="portfolio-card">
+          <div class="small-muted">Sum guaranteed returns</div>
+          <div class="portfolio-value">${fmt(sumGuaranteed)}</div>
+          <div class="small-muted">If each game's chosen pair hits, you'll receive at least this sum.</div>
+        </div>
+
+        <div class="portfolio-card">
+          <div class="small-muted">Sum max possible returns</div>
+          <div class="portfolio-value">${fmt(sumMaxPossible)}</div>
+          <div class="small-muted">If the highest-returning side of each chosen pair wins.</div>
+        </div>
+      </div>
+
+      <div class="portfolio-grid">
+        <div class="portfolio-card">
+          <div class="small-muted">Min profit (guarantee - stakes)</div>
+          <div class="portfolio-value ${minProfit>0 ? 'profit-positive' : (minProfit<0 ? 'profit-negative' : '')}">${fmt(minProfit)}</div>
+          <div class="small-muted">This is the guaranteed (worst-case) profit across the portfolio if chosen pairs hit.</div>
+        </div>
+
+        <div class="portfolio-card">
+          <div class="small-muted">Max profit (max possible - stakes)</div>
+          <div class="portfolio-value ${maxProfit>0 ? 'profit-positive' : (maxProfit<0 ? 'profit-negative' : '')}">${fmt(maxProfit)}</div>
+          <div class="small-muted">Potential best-case profit (per-game top return wins).</div>
+        </div>
+      </div>
+
+      <div class="portfolio-card" style="margin-top:16px">
+        <div class="small-muted">Total potential loss if third outcomes hit</div>
+        <div class="portfolio-value profit-negative">${fmt(lossesIfThird)}</div>
+        <div class="small-muted">This amount would be lost if the unbacked outcome occurs in all games.</div>
+      </div>
+  `;
+
+  // Add Parlay Mode section
+  portfolioHTML += `
+      <div class="parlay-toggle">
+        <label class="toggle-switch">
+          <input type="checkbox" id="parlayToggle" ${parlayMode ? 'checked' : ''}>
+          <span class="toggle-slider"></span>
+        </label>
+        <div>
+          <strong>Parlay Mode</strong>
+          <div class="small-muted">Combine all games into a parlay bet with calculated stake distribution</div>
+        </div>
+      </div>
+  `;
+
+  // Add Parlay controls if enabled
+  if (parlayMode) {
+    const parlayResults = calculateParlay(details, parlayStake, parlayRounding);
+    
+    portfolioHTML += `
+      <div class="parlay-controls">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+          <div class="input" style="flex:1;min-width:200px">
+            <label>Parlay Total Stake (₦)</label>
+            <input id="parlayStake" type="number" step="100" min="100" value="${parlayStake}" />
+          </div>
+          <div class="input" style="flex:1;min-width:200px">
+            <label>Rounding</label>
+            <select id="parlayRounding">
+              <option value="1" ${parlayRounding === 1 ? 'selected' : ''}>₦1</option>
+              <option value="50" ${parlayRounding === 50 ? 'selected' : ''}>₦50</option>
+              <option value="100" ${parlayRounding === 100 ? 'selected' : ''}>₦100</option>
+            </select>
+          </div>
+          <button class="btn" id="calculateParlay" style="align-self:flex-end">Calculate</button>
+        </div>
+
+        <div style="margin-top:16px">
+          <div class="small-muted">Parlay consists of ${parlayResults.combinations.length} possible combinations</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+            <div>Guaranteed payout:</div>
+            <div class="portfolio-value ${parlayResults.guaranteedPayout > parlayStake ? 'profit-positive' : 'profit-negative'}">${fmt(parlayResults.guaranteedPayout)}</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+            <div>Potential profit:</div>
+            <div class="${parlayResults.profit > 0 ? 'profit-positive' : 'profit-negative'}">${fmt(parlayResults.profit)}</div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px">
+          <div class="small-muted" style="margin-bottom:8px">Stake distribution:</div>
+          <table class="parlay-table">
+            <thead>
+              <tr>
+                <th>Combination</th>
+                <th>Odds</th>
+                <th>Stake</th>
+                <th>Payout</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${parlayResults.combinations.map((combo, i) => `
+                <tr>
+                  <td class="parlay-combo">${combo.label}</td>
+                  <td>${combo.odds.toFixed(2)}</td>
+                  <td>${fmt(combo.stake)}</td>
+                  <td>${fmt(combo.payout)}</td>
+                  <td><button class="copy-btn" data-copy="${combo.label} ${fmt(combo.stake)}">Copy</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="hint" style="margin-top:16px">
+          <strong>Risk note:</strong> If any game results in the third (unbacked) outcome, the entire parlay bet fails and you lose the full parlay stake of ${fmt(parlayStake)}.
+        </div>
+      </div>
+    `;
+  }
+
+  portfolioHTML += `
+      <div style="margin-top:12px" class="small-muted">
+        <strong>Risk notes</strong>
+        <ul>
+          <li>If the unbacked, third outcome occurs in any game, you'll lose that game's stake (shown as total potential loss: ${fmt(lossesIfThird)}).</li>
+          <li>These calculations assume you place only the two stakes per game (pair). Parlays (combining outcomes cross-games) are different and require separate stake logic.</li>
+          <li>Rounding may slightly change exact payouts — we round stakes to selected step per game.</li>
+        </ul>
+      </div>
+
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="btnExportCsv">Export CSV</button>
+        <button class="btn ghost" id="btnSaveLocal">Save locally</button>
+        <button class="btn ghost" id="btnLoadLocal">Load</button>
+        <button class="btn danger" id="btnClear">Clear all</button>
+      </div>
+    </div>
+  `;
+
+  port.innerHTML = portfolioHTML;
+
+  // Add event listeners
+  q('#parlayToggle').addEventListener('change', (e) => {
+    parlayMode = e.target.checked;
+    saveSession();
+    renderPortfolio();
+  });
+
+  if (parlayMode) {
+    q('#parlayStake').addEventListener('change', (e) => {
+      parlayStake = Number(e.target.value);
+      saveSession();
+      renderPortfolio();
+    });
+
+    q('#parlayRounding').addEventListener('change', (e) => {
+      parlayRounding = Number(e.target.value);
+      saveSession();
+      renderPortfolio();
+    });
+
+    q('#calculateParlay').addEventListener('click', () => {
+      parlayStake = Number(q('#parlayStake').value);
+      parlayRounding = Number(q('#parlayRounding').value);
+      saveSession();
+      renderPortfolio();
+    });
+
+    // attach copy buttons for parlay combinations
+    setTimeout(() => {
+      port.querySelectorAll('button[data-copy]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const text = btn.dataset.copy;
+          navigator.clipboard.writeText(text).then(() => {
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = 'Copy', 1500);
+          }).catch(err => {
+            showToast('Failed to copy to clipboard', 'error');
+          });
+        });
+      });
+    }, 100);
+  }
+
+  // wire the portfolio buttons
+  q('#btnExportCsv').onclick = exportCsv;
+  q('#btnSaveLocal').onclick = saveSession;
+  q('#btnLoadLocal').onclick = loadSession;
+  q('#btnClear').onclick = ()=> clearSession(true);
+}
+
+/* Calculate parlay combinations and stakes */
+function calculateParlay(games, totalStake, rounding) {
+  if (games.length === 0) {
+    return { combinations: [], guaranteedPayout: 0, profit: 0 };
+  }
+
+  // Get all selected pairs from games
+  const pairs = games.map(game => {
+    const pair = game.pair;
+    return {
+      outcome1: { label: `${pair.aLabel}${games.indexOf(game) + 1}`, odds: pair.a },
+      outcome2: { label: `${pair.bLabel}${games.indexOf(game) + 1}`, odds: pair.b }
+    };
+  });
+
+  // Generate all combinations
+  const combinations = generateCombinations(pairs);
+  
+  // Calculate combined odds for each combination
+  const combosWithOdds = combinations.map(combo => {
+    const odds = combo.reduce((product, outcome) => product * outcome.odds, 1);
+    const label = combo.map(outcome => outcome.label).join(' × ');
+    return { label, odds };
+  });
+
+  // Extract just the odds for stake calculation
+  const oddsArray = combosWithOdds.map(combo => combo.odds);
+  
+  // Calculate stake distribution
+  const parlayResult = calcParlayStakes(totalStake, oddsArray, rounding);
+  
+  // Combine results
+  const result = {
+    combinations: combosWithOdds.map((combo, i) => ({
+      ...combo,
+      stake: parlayResult.stakes[i],
+      payout: parlayResult.payouts[i]
+    })),
+    guaranteedPayout: parlayResult.guaranteedPayout,
+    profit: parlayResult.profit
+  };
+  
+  return result;
+}
+
+/* Generate all combinations of outcomes from pairs */
+function generateCombinations(pairs) {
+  if (pairs.length === 0) return [[]];
+  
+  const firstPair = pairs[0];
+  const restCombinations = generateCombinations(pairs.slice(1));
+  
+  const combinations = [];
+  for (const outcome of [firstPair.outcome1, firstPair.outcome2]) {
+    for (const restCombo of restCombinations) {
+      combinations.push([outcome, ...restCombo]);
+    }
+  }
+  
+  return combinations;
+}
+
+/* ---------- Export CSV ---------- */
+function exportCsv(){
+  const rows = [['home','away','odds_H','odds_D','odds_A','stake','rounding','pairSel','guaranteed','maxPossible']];
+  games.forEach(g=>{
+    const pairs = [
+      {id:'HD', aLabel:'H', bLabel:'D', a:g.odds.H, b:g.odds.D},
+      {id:'HA', aLabel:'H', bLabel:'A', a:g.odds.H, b:g.odds.A},
+      {id:'DA', aLabel:'D', bLabel:'A', a:g.odds.D, b:g.odds.A},
+    ];
+    let chosen = null;
+    let best = null;
+    pairs.forEach(p=>{
+      const e = calcEqualPayout(g.stake, p.a, p.b, g.rounding);
+      const guar = Math.min(e.payoutA, e.payoutB);
+      if(!best || guar>best.guar) best = {p,e,guar};
+    });
+    if(g.pairSel==='auto') chosen = best;
+    else {
+      chosen = pairs.map(p=>{
+        const e = calcEqualPayout(g.stake, p.a, p.b, g.rounding);
+        return {p,e,guar:Math.min(e.payoutA,e.payoutB)}
+      }).find(x=>x.p.id===g.pairSel) || best;
+    }
+    const guar = chosen.guar || 0;
+    const maxPossible = Math.max(chosen.e.payoutA, chosen.e.payoutB) || 0;
+    rows.push([g.home,g.away,g.odds.H,g.odds.D,g.odds.A,g.stake,g.rounding,g.pairSel,guar,maxPossible]);
+  });
+  const csv = rows.map(r=>r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'dutching_session.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  showToast('CSV exported successfully!', 'success');
+}
+
+/* ---------- Edit modal ---------- */
+function openEditModal(id){
+  const g = games.find(x=>x.id===id); 
+  if(!g) return;
+  
+  // Create modal overlay
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  `;
+  
+  // Create modal content
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    background: var(--card);
+    padding: 20px;
+    border-radius: var(--radius);
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+  `;
+  
+  modal.innerHTML = `
+    <h3 style="margin-top:0">Edit Game</h3>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <div class="input" style="flex:1">
+        <label>Home team</label>
+        <input id="editHome" value="${escapeHtml(g.home)}" placeholder="Home team" />
+      </div>
+      <div class="input" style="flex:1">
+        <label>Away team</label>
+        <input id="editAway" value="${escapeHtml(g.away)}" placeholder="Away team" />
+      </div>
+    </div>
+    
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <div class="input" style="flex:1">
+        <label>Odds - Home (H)</label>
+        <input id="editH" type="number" step="0.01" min="1.01" value="${g.odds.H}" />
+      </div>
+      <div class="input" style="flex:1">
+        <label>Odds - Draw (D)</label>
+        <input id="editD" type="number" step="0.01" min="1.01" value="${g.odds.D}" />
+      </div>
+      <div class="input" style="flex:1">
+        <label>Odds - Away (A)</label>
+        <input id="editA" type="number" step="0.01" min="1.01" value="${g.odds.A}" />
+      </div>
+    </div>
+    
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <div class="input" style="flex:1">
+        <label>Stake (₦)</label>
+        <input id="editStake" type="number" step="1" min="1" value="${g.stake}" />
+      </div>
+    </div>
+    
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn ghost" id="editCancel">Cancel</button>
+      <button class="btn" id="editSave">Save Changes</button>
+    </div>
+  `;
+  
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  
+  // Add event listeners
+  overlay.querySelector('#editCancel').onclick = () => overlay.remove();
+  overlay.querySelector('#editSave').onclick = () => {
+    const home = overlay.querySelector('#editHome').value.trim() || 'Home';
+    const away = overlay.querySelector('#editAway').value.trim() || 'Away';
+    const H = Number(overlay.querySelector('#editH').value) || g.odds.H;
+    const D = Number(overlay.querySelector('#editD').value) || g.odds.D;
+    const A = Number(overlay.querySelector('#editA').value) || g.odds.A;
+    const stake = Number(overlay.querySelector('#editStake').value) || g.stake;
+    
+    // Validate inputs
+    if (H < 1.01 || D < 1.01 || A < 1.01) {
+      showToast('Odds must be at least 1.01', 'error');
+      return;
+    }
+    
+    if (stake <= 0) {
+      showToast('Stake must be greater than 0', 'error');
+      return;
+    }
+    
+    updateGame(id, {home, away, odds:{H,D,A}, stake});
+    overlay.remove();
+    showToast('Game updated successfully!', 'success');
+  };
+  
+  // Close modal when clicking outside
+  overlay.onclick = (e) => {
+    if (e.target === overlay) overlay.remove();
+  };
+}
+
+/* ---------- Small helpers ---------- */
+function formatOdds(o){ return `H ${o.H} · D ${o.D} · A ${o.A}`; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
+/* ---------- Wire up UI ---------- */
+q('#btnNew').onclick = ()=> {
+  const f = q('#newGameForm');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  if (f.style.display === 'block') {
+    q('#teamHome').focus();
+  }
+}
+q('#cancelAdd').onclick = ()=> q('#newGameForm').style.display = 'none';
+q('#addGameBtn').onclick = addGameFromForm;
+q('#btnSave').onclick = saveSession;
+q('#btnLoad').onclick = loadSession;
+q('#btnExport').onclick = exportCsv;
+q('#btnClearAll').onclick = ()=> clearSession(true);
+
+/* initial demo data */
+function seedDemo(){
+  const saved = localStorage.getItem('da_games_v1');
+  if (saved) {
+    // Load existing session
+    games = JSON.parse(saved) || [];
+  } else {
+    // No saved session → seed demo matches
+    games = [
+      {
+        id: Date.now()+1,
+        home: 'Chelsea',
+        away: 'Arsenal',
+        odds: {H: 2.10, D: 3.25, A: 3.70},
+        stake: 3000,
+        rounding: 100,
+        pairSel: 'auto'
+      },
+      {
+        id: Date.now()+2,
+        home: 'Liverpool',
+        away: 'Man City',
+        odds: {H: 2.80, D: 3.50, A: 2.40},
+        stake: 2500,
+        rounding: 50,
+        pairSel: 'DA'
+      }
+    ];
+  }
+  renderAll();
+}
+seedDemo();
+
+
+/* keyboard shortcut: N => new game */
+document.addEventListener('keydown', (e)=>{
+  if((e.key === 'n' || e.key === 'N') && !e.ctrlKey && !e.metaKey){
+    q('#newGameForm').style.display = 'block'; 
+    q('#teamHome').focus();
+    e.preventDefault();
+  }
+});
+
+</script>
+</body>
+</html>
