@@ -722,7 +722,7 @@ function renderAnalysisHtml(g){
   // Build HTML
   let html = '';
   showRows.forEach(r=>{
-    const p = r.p, e = r.e, guar = r.guar;
+    const p = r.pair || r.p , e = r.e, guar = r.guar;
     const profit = guar - g.stake;
     const cls = profit>0 ? 'profit-positive' : (profit<0 ? 'profit-negative' : 'profit-neutral');
     html += `
